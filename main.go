@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/anthonyho007/Go-Talk/server"
+	"github.com/anthonyho007/BYOP/server"
 	"github.com/gorilla/websocket"
 )
 
@@ -17,6 +17,7 @@ func main() {
 	wsServer = server.CreateServer()
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/ws", websocketHandler)
+	fmt.Println("Hosting server at localhost:" + Port)
 	log.Fatal(http.ListenAndServe(":"+Port, nil))
 }
 
@@ -37,7 +38,6 @@ func websocketHandler(r http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
-	fmt.Println("handlenewconnection")
 	wsServer.HandleNewConnection(conn)
 
 }

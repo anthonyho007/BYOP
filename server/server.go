@@ -22,7 +22,7 @@ type Server struct {
 }
 
 func CreateServer() *Server {
-	fmt.Printf("create serverr")
+	fmt.Println("Starting server")
 	server := new(Server)
 	go server.start()
 	return server
@@ -34,8 +34,8 @@ func (server *Server) start() {
 	server.NewConnections = make(chan *websocket.Conn, MaxNewConnections)
 	server.ChangeChat = make(chan *Client, MaxChatClientBuffer)
 	server.Exit = make(chan int, 1)
-	fmt.Println("create new hall and server")
-	server.Hall = server.createChat(HallID)
+
+	server.Hall = server.createChat(HallID, HallID)
 	go server.Hall.start()
 	go server.listen()
 
@@ -44,36 +44,26 @@ func (server *Server) start() {
 }
 
 func (server *Server) HandleNewConnection(conn *websocket.Conn) {
-	fmt.Println("send conn to newconnection chan")
-	// auth := Auth{}
-	// fmt.Print("okay")
-	// conn.ReadJSON(&auth)
-	// fmt.Println(auth.Name)
 	server.NewConnections <- conn
 }
 
 func (server *Server) listen() {
 	for {
-		fmt.Println("loop on server listen")
 		select {
 		case conn := <-server.NewConnections:
 			auth := Auth{}
-			fmt.Println("stuck here")
 			err := conn.ReadJSON(&auth)
 			if err != nil {
-				fmt.Println("conn err", err)
+				fmt.Println("connection err", err)
+				continue
 			}
-			fmt.Println("got auth response")
-			fmt.Println(auth.Name)
 			if auth.Name != "" && auth.Email != "" {
 				client := server.getClient(auth.Name, auth.Email)
 				if client == nil {
 					fmt.Println("no client found create new one", auth.Name, auth.Email)
-					// client = server.createClient(conn, auth.Name, auth.Email)
 					client = server.createClient(conn, auth.Name, auth.Email)
-					// server.Clients[client.Id] = client
-					// client.ChangeChatId = HallID
-					// client.startChangingChat(HallID)
+				} else {
+					client.Conn.Close()
 				}
 				client.Conn = conn
 				go client.start()
@@ -85,17 +75,14 @@ func (server *Server) listen() {
 			} else if client.ChangeChatId == "" {
 				client.unblockRecvChannel()
 			} else {
-				fmt.Println("client changechat id and current chat room", client.ChangeChatId)
 				for k := range client.Chats {
 					fmt.Printf(k + " ")
 				}
 				chat := server.Chats[client.ChangeChatId]
 				if chat == nil {
-					fmt.Println("create a new chat")
-					chat = server.createChat("")
-					go chat.start()
+					fmt.Println("Failed to find chat id: " + client.ChangeChatId)
+					continue
 				}
-				fmt.Println("entering chat " + chat.Id)
 				chat.EnterChat <- client
 			}
 		}
@@ -103,51 +90,17 @@ func (server *Server) listen() {
 }
 
 func (server *Server) createClient(conn *websocket.Conn, name string, email string) *Client {
-	fmt.Println("create client")
 	client := createClient(conn, name, email)
 	client.Server = server
 	server.Clients[client.Id] = client
 	client.ChangeChatId = HallID
-	fmt.Println("HallId ", HallID)
 	client.startChangingChat(HallID)
 	return client
 }
 
-func (server *Server) createChat(id string) *Chat {
-	if id == "" {
-		id = generateId()
-	}
-	fmt.Println("Print generated Id", id)
-	chat := createChat(id)
+func (server *Server) createChat(id string, name string) *Chat {
+	chat := createChat(id, name)
 	server.Chats[chat.Id] = chat
+	chat.Server = server
 	return chat
-}
-
-func (server *Server) getClient(name string, email string) *Client {
-	for _, client := range server.Clients {
-		if client.Name == name && client.Email == email {
-			return client
-		}
-	}
-	return nil
-}
-
-func (server *Server) getClientByName(name string) *Client {
-	for _, client := range server.Clients {
-		if client.Name == name {
-			return client
-		}
-	}
-	return nil
-}
-
-func (server *Server) getClientsByName(names []string) []*Client {
-	clients := []*Client{}
-	for _, name := range names {
-		client := server.getClientByName(name)
-		if client != nil {
-			clients = append(clients, client)
-		}
-	}
-	return clients
 }

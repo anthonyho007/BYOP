@@ -1,5 +1,9 @@
 package server
 
+import (
+	"strings"
+)
+
 const (
 	HallID              = "Hall"
 	MaxChatClientBuffer = 12
@@ -8,6 +12,7 @@ const (
 type Chat struct {
 	Id string
 
+	Name    string
 	Server  *Server
 	Clients map[string]*Client
 
@@ -16,9 +21,10 @@ type Chat struct {
 	LeaveChat        chan *Client
 }
 
-func createChat(id string) *Chat {
+func createChat(id string, name string) *Chat {
 	chat := &Chat{
 		Id:               id,
+		Name:             name,
 		Clients:          make(map[string]*Client),
 		BroadcastMessage: make(chan Message, MaxMessageBuffer),
 		EnterChat:        make(chan *Client, MaxChatClientBuffer),
@@ -75,4 +81,19 @@ func (chat *Chat) containsOnlyClients(clients []string) bool {
 		}
 	}
 	return true
+}
+
+func (chat *Chat) getAllChatMemberName() []string {
+	var result []string
+	for _, client := range chat.Clients {
+		result = append(result, client.Name)
+	}
+	return result
+}
+
+func (chat *Chat) getChatRoomInfo() string {
+	chatName := chat.Name
+	members := strings.Join(chat.getAllChatMemberName(), ", ")
+	msg := "You are currently at chatroom " + chatName + ".\n" + members + " are currently in the chatroom"
+	return msg
 }

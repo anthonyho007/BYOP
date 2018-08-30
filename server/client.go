@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -56,9 +57,9 @@ func createClient(conn *websocket.Conn, name string, email string) *Client {
 
 func (client *Client) generateMsg(str string) {
 	msg := Message{
-		Id:    client.Id,
-		Email: client.Email,
-		Name:  client.Name,
+		Id:    "",
+		Email: "",
+		Name:  "",
 		Msg:   str,
 		Date:  time.Now(),
 	}
@@ -76,13 +77,40 @@ func (client *Client) recv() {
 			}
 		}
 		<-client.ChangeChat
-		fmt.Println("break chaning")
 		msg := Message{}
 		err := client.Conn.ReadJSON(&msg)
 		if err != nil {
 			goto EXIT
 		}
 		msg.Date = time.Now()
+
+		input := msg.Msg
+		if strings.HasPrefix(input, "/") {
+			if strings.HasPrefix(input, "/list-chats") {
+				client.generateMsg("Chatrooms : " + client.Server.listAllChatnames())
+				continue
+			} else if strings.HasPrefix(input, "/show") {
+				client.generateMsg(client.CurrentChat.getChatRoomInfo())
+				continue
+
+			} else if strings.HasPrefix(input, "/create-chat") {
+				client.createChat(input)
+				continue
+
+			} else if strings.HasPrefix(input, "/enter-chat") {
+				client.enterChat(input)
+				continue
+
+			} else if strings.HasPrefix(input, "/talk") {
+				client.inviteToChat(input)
+			} else if strings.HasPrefix(input, "/online") {
+				client.generateMsg("Online : " + client.Server.listAllClientNames())
+				continue
+			}
+		} else if input == "" {
+			continue
+		}
+
 		client.CurrentChat.BroadcastMessage <- msg
 	}
 EXIT:
@@ -107,15 +135,56 @@ EXIT:
 }
 
 func (client *Client) startChangingChat(chatId string) {
-	fmt.Println("start changein chat in client")
 	client.ChangeChat = make(chan int)
 	client.ChangeChatId = chatId
-	fmt.Println("pass to server changechat")
 	client.Server.ChangeChat <- client
 }
 
 func (client *Client) unblockRecvChannel() {
-	fmt.Println("end chaning room")
+	chatName := client.CurrentChat.Name
+	client.generateMsg("You are currently at chatroom " + chatName)
 	client.ChangeChatId = ""
 	close(client.ChangeChat)
+}
+
+func (client *Client) createChat(input string) {
+	name := strings.TrimPrefix(input, "/create-chat")
+	name = strings.TrimSpace(name)
+	chat := client.Server.createChat("", name)
+	go chat.start()
+	client.generateMsg("You have created chatroom " + name)
+}
+
+func (client *Client) enterChat(input string) {
+	name := strings.TrimPrefix(input, "/enter-chat")
+	name = strings.TrimSpace(name)
+	chatId := client.Server.getChatId(name)
+	if chatId == "" {
+		client.createChat(input)
+	}
+	client.startChangingChat(chatId)
+}
+
+func (client *Client) inviteToChat(input string) {
+	names := strings.TrimPrefix(input, "/talk")
+	names = strings.TrimSpace(names)
+	users := strings.Split(names, " ")
+
+	clients := client.Server.getClientsByName(users)
+	chatName := ""
+	users = append(users, client.Name)
+	for _, chat := range client.Server.Chats {
+		if chat.containsOnlyClients(users) {
+			chatName = chat.Id
+		}
+	}
+	if chatName == "" {
+		chatName = "room-" + generate3DigitId()
+	}
+	client.enterChat(chatName)
+
+	for _, user := range clients {
+		user.generateMsg(client.Name + " has invite you to chat in chatroom " + chatName)
+	}
+
 }
