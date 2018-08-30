@@ -1,6 +1,7 @@
-package main
+package server
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -28,6 +29,7 @@ type Client struct {
 }
 
 func (client *Client) start() {
+	fmt.Println("start client")
 	go client.recv()
 	go client.send()
 	<-client.CloseChannel
@@ -42,6 +44,8 @@ func createClient(conn *websocket.Conn, name string, email string) *Client {
 		Conn:        conn,
 		CurrentChat: nil,
 		Server:      nil,
+
+		Chats: make(map[string]*Chat),
 
 		SendMessage:  make(chan Message, MaxMessageBuffer),
 		CloseChannel: make(chan int),
@@ -67,9 +71,12 @@ func (client *Client) recv() {
 		select {
 		case <-client.CloseChannel:
 			goto EXIT
+		default:
+			{
+			}
 		}
 		<-client.ChangeChat
-
+		fmt.Println("break chaning")
 		msg := Message{}
 		err := client.Conn.ReadJSON(&msg)
 		if err != nil {
@@ -100,12 +107,15 @@ EXIT:
 }
 
 func (client *Client) startChangingChat(chatId string) {
+	fmt.Println("start changein chat in client")
 	client.ChangeChat = make(chan int)
 	client.ChangeChatId = chatId
-	// client.Server.
+	fmt.Println("pass to server changechat")
+	client.Server.ChangeChat <- client
 }
 
 func (client *Client) unblockRecvChannel() {
+	fmt.Println("end chaning room")
 	client.ChangeChatId = ""
 	close(client.ChangeChat)
 }

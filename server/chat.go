@@ -1,8 +1,8 @@
-package main
+package server
 
 const (
-	HallID        = "Hall"
-	MaxChatClient = 12
+	HallID              = "Hall"
+	MaxChatClientBuffer = 12
 )
 
 type Chat struct {
@@ -16,15 +16,36 @@ type Chat struct {
 	LeaveChat        chan *Client
 }
 
-func createChat() *Chat {
+func createChat(id string) *Chat {
 	chat := &Chat{
+		Id:               id,
 		Clients:          make(map[string]*Client),
 		BroadcastMessage: make(chan Message, MaxMessageBuffer),
-		EnterChat:        make(chan *Client, MaxChatClient),
-		LeaveChat:        make(chan *Client, MaxChatClient),
+		EnterChat:        make(chan *Client, MaxChatClientBuffer),
+		LeaveChat:        make(chan *Client, MaxChatClientBuffer),
 	}
-	chat.Id = generateId()
+	if id == "" {
+		chat.Id = generateId()
+	}
 	return chat
+}
+
+func (chat *Chat) start() {
+
+	for {
+		select {
+		case client := <-chat.EnterChat:
+			chat.enterChat(client)
+			client.unblockRecvChannel()
+		case client := <-chat.LeaveChat:
+			chat.leaveChat(client)
+			chat.Server.ChangeChat <- client
+		case msg := <-chat.BroadcastMessage:
+			for _, client := range chat.Clients {
+				client.SendMessage <- msg
+			}
+		}
+	}
 }
 
 func (chat *Chat) enterChat(client *Client) {
@@ -54,10 +75,4 @@ func (chat *Chat) containsOnlyClients(clients []string) bool {
 		}
 	}
 	return true
-}
-
-func (chat *Chat) start() {
-	for {
-
-	}
 }
