@@ -57,11 +57,11 @@ func (server *Server) listen() {
 				fmt.Println("connection err", err)
 				continue
 			}
-			if auth.Name != "" && auth.Email != "" {
-				client := server.getClient(auth.Name, auth.Email)
+			if auth.Name != "" && auth.Code != "" {
+				client := server.getClient(auth.Name, auth.Code)
 				if client == nil {
-					fmt.Println("no client found create new one", auth.Name, auth.Email)
-					client = server.createClient(conn, auth.Name, auth.Email)
+					fmt.Println("no client found create new one", auth.Name, auth.Code)
+					client = server.createClient(conn, auth.Name, auth.Code)
 				} else {
 					client.Conn.Close()
 				}
@@ -79,6 +79,7 @@ func (server *Server) listen() {
 					fmt.Printf(k + " ")
 				}
 				chat := server.Chats[client.ChangeChatId]
+				fmt.Println("Found chat " + chat.Name)
 				if chat == nil {
 					fmt.Println("Failed to find chat id: " + client.ChangeChatId)
 					continue

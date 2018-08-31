@@ -13,9 +13,9 @@ const (
 )
 
 type Client struct {
-	Id    string
-	Name  string
-	Email string
+	Id   string
+	Name string
+	Code string
 
 	Conn        *websocket.Conn
 	Server      *Server
@@ -36,11 +36,11 @@ func (client *Client) start() {
 	<-client.CloseChannel
 }
 
-func createClient(conn *websocket.Conn, name string, email string) *Client {
+func createClient(conn *websocket.Conn, name string, code string) *Client {
 	client := &Client{
 
-		Name:  name,
-		Email: email,
+		Name: name,
+		Code: code,
 
 		Conn:        conn,
 		CurrentChat: nil,
@@ -57,11 +57,11 @@ func createClient(conn *websocket.Conn, name string, email string) *Client {
 
 func (client *Client) generateMsg(str string) {
 	msg := Message{
-		Id:    "",
-		Email: "",
-		Name:  "",
-		Msg:   str,
-		Date:  time.Now(),
+		Id:   "",
+		Code: "",
+		Name: "",
+		Msg:  str,
+		Date: time.Now(),
 	}
 
 	client.SendMessage <- msg
@@ -103,6 +103,7 @@ func (client *Client) recv() {
 
 			} else if strings.HasPrefix(input, "/talk") {
 				client.inviteToChat(input)
+				continue
 			} else if strings.HasPrefix(input, "/online") {
 				client.generateMsg("Online : " + client.Server.listAllClientNames())
 				continue
@@ -142,17 +143,18 @@ func (client *Client) startChangingChat(chatId string) {
 
 func (client *Client) unblockRecvChannel() {
 	chatName := client.CurrentChat.Name
-	client.generateMsg("You are currently at chatroom " + chatName)
+	client.generateMsg("You have entered chatroom " + chatName)
 	client.ChangeChatId = ""
 	close(client.ChangeChat)
 }
 
-func (client *Client) createChat(input string) {
+func (client *Client) createChat(input string) string {
 	name := strings.TrimPrefix(input, "/create-chat")
 	name = strings.TrimSpace(name)
 	chat := client.Server.createChat("", name)
 	go chat.start()
 	client.generateMsg("You have created chatroom " + name)
+	return chat.Id
 }
 
 func (client *Client) enterChat(input string) {
@@ -160,7 +162,7 @@ func (client *Client) enterChat(input string) {
 	name = strings.TrimSpace(name)
 	chatId := client.Server.getChatId(name)
 	if chatId == "" {
-		client.createChat(input)
+		chatId = client.createChat(name)
 	}
 	client.startChangingChat(chatId)
 }
@@ -178,9 +180,10 @@ func (client *Client) inviteToChat(input string) {
 			chatName = chat.Id
 		}
 	}
-	if chatName == "" {
+	if chatName == HallID || chatName == "" {
 		chatName = "room-" + generate3DigitId()
 	}
+
 	client.enterChat(chatName)
 
 	for _, user := range clients {

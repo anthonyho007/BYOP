@@ -16,9 +16,9 @@ func generate3DigitId() string {
 	return id
 }
 
-func (server *Server) getClient(name string, email string) *Client {
+func (server *Server) getClient(name string, code string) *Client {
 	for _, client := range server.Clients {
-		if client.Name == name && client.Email == email {
+		if client.Name == name && client.Code == code {
 			return client
 		}
 	}

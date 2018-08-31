@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -58,6 +59,7 @@ func (chat *Chat) enterChat(client *Client) {
 	if client.CurrentChat != nil {
 		return
 	}
+	fmt.Println("set current chat to " + chat.Name)
 	chat.Clients[client.Id] = client
 	client.CurrentChat = chat
 	client.Chats[chat.Id] = chat
@@ -67,6 +69,7 @@ func (chat *Chat) leaveChat(client *Client) {
 	if client.CurrentChat == nil {
 		return
 	}
+	delete(chat.Clients, client.Id)
 	client.CurrentChat = nil
 }
 
@@ -94,6 +97,6 @@ func (chat *Chat) getAllChatMemberName() []string {
 func (chat *Chat) getChatRoomInfo() string {
 	chatName := chat.Name
 	members := strings.Join(chat.getAllChatMemberName(), ", ")
-	msg := "You are currently at chatroom " + chatName + ".\n" + members + " are currently in the chatroom"
+	msg := "You are currently at chatroom " + chatName + ", and " + members + " are currently in the chatroom"
 	return msg
 }

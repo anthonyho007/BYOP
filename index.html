@@ -36,19 +36,19 @@
     </head>
     <body>
         <div class="container">
-            <h1 class="text-center"> Go Talk</h1>
+            <h1 class="text-center">BYOP Playground</h1>
             <div class="row login" id="login">
                 <h3>Enter a name to login</h3>
                 <div class="form-group">
                     <label class="col-3 col-form-label">Name</label>
                     <div class="col-9">
-                        <input class="form-control" type="text" value="anthony" id="username">
+                        <input class="form-control" type="text" placeholder="anthony" value="" id="username">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="col-3 col-form-label">Email</label>
+                    <label class="col-3 col-form-label">Secret Code</label>
                     <div class="col-9">
-                        <input class="form-control" type="text" value="asd" id="email">
+                        <input class="form-control" type="text" placeholder="abc123" value="" id="code">
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary" onclick="login()">Login</button>
@@ -67,7 +67,7 @@
         <script type="text/javascript">
             var msg = document.getElementById("msg");
             var username = document.getElementById("username");
-            var email = document.getElementById("email");
+            var code = document.getElementById("code");
             var chat = document.getElementById("chat");
 
             var host = location.hostname;
@@ -76,7 +76,7 @@
             function send() {
                 var data = {
                     name: username.value,
-                    email: email.value,
+                    code: code.value,
                     msg: msg.value,
                 }
                 websocket.send(JSON.stringify(data))
@@ -92,7 +92,7 @@
                 websocket.onopen = function() {
                     var data = {
                         name: username.value,
-                        email: username.value
+                        code: code.value
                     };
                     console.log(data);
                     websocket.send(JSON.stringify(data));
