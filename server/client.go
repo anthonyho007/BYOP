@@ -111,7 +111,7 @@ func (client *Client) recv() {
 		} else if input == "" {
 			continue
 		}
-
+		client.CurrentChat.HistMessage.Append(msg)
 		client.CurrentChat.BroadcastMessage <- msg
 	}
 EXIT:

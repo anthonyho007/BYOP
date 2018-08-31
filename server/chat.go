@@ -3,15 +3,20 @@ package server
 import (
 	"fmt"
 	"strings"
+
+	"github.com/anthonyho007/BYOP/datastructure"
 )
 
 const (
 	HallID              = "Hall"
 	MaxChatClientBuffer = 12
+	MaxPastMessage      = 25
 )
 
 type Chat struct {
 	Id string
+
+	HistMessage *datastructure.CSlice
 
 	Name    string
 	Server  *Server
@@ -34,6 +39,8 @@ func createChat(id string, name string) *Chat {
 	if id == "" {
 		chat.Id = generateId()
 	}
+
+	chat.HistMessage = datastructure.CSliceObj(MaxPastMessage)
 	return chat
 }
 
@@ -43,6 +50,11 @@ func (chat *Chat) start() {
 		select {
 		case client := <-chat.EnterChat:
 			chat.enterChat(client)
+			fmt.Println("print past message")
+			for msg := range chat.HistMessage.List() {
+				msg1 := msg.Entry.(Message)
+				chat.BroadcastMessage <- msg1
+			}
 			client.unblockRecvChannel()
 		case client := <-chat.LeaveChat:
 			chat.leaveChat(client)

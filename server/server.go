@@ -63,7 +63,9 @@ func (server *Server) listen() {
 					fmt.Println("no client found create new one", auth.Name, auth.Code)
 					client = server.createClient(conn, auth.Name, auth.Code)
 				} else {
-					client.Conn.Close()
+					client.CloseChannel <- 1
+					client.ChangeChatId = HallID
+					client.startChangingChat(HallID)
 				}
 				client.Conn = conn
 				go client.start()
