@@ -4,21 +4,24 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/anthonyho007/BYOP/server"
 	"github.com/gorilla/websocket"
 )
 
-const (
-	Port = "8000"
-)
-
 func main() {
+	// acquire port
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		log.Fatal("$PORT value must be define")
+	}
 	wsServer = server.CreateServer()
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/ws", websocketHandler)
-	fmt.Println("Hosting server at localhost:" + Port)
-	log.Fatal(http.ListenAndServe(":"+Port, nil))
+	fmt.Println("Hosting server at port :" + port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 var wsServer *server.Server
