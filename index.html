@@ -54,7 +54,8 @@
                 <button type="submit" class="btn btn-primary" onclick="login()">Login</button>
             </div>
             <div class="row message" id="message" style="display: none;">
-                <h3 class="col-12">Chat</h3>
+                <h3 id="user-display-name"></h2>
+                <h2 class="col-12">Chat</h3>
                 <pre id="chat" class="msgs"></pre>
                 <span class="form-group">
                     <input class="form-control" type="text" value="" id="msg">
@@ -69,6 +70,7 @@
             var username = document.getElementById("username");
             var code = document.getElementById("code");
             var chat = document.getElementById("chat");
+            var displayName = document.getElementById("user-display-name");
 
             var host = location.hostname;
             var path = "";
@@ -125,6 +127,8 @@
 
                 document.getElementById("login").style.display = "none";
                 document.getElementById("message").style.display = "block";
+                var nameNode = document.createTextNode("User: " + username.value);
+                displayName.appendChild(nameNode);
 
             }
 
